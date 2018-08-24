@@ -1,0 +1,47 @@
+{
+	"description": "Sune's secret plugin",
+	"documentation": "https://www.example.com",
+	"entrypoint": [
+		"/go/bin/secrets-plugin"
+	],
+	"env": [
+		{
+			"name": "vault-helper-service",
+			"description": "Name of the service that runs the helper containers with secret zero configured",
+			"value": "vault-helper-service"
+		},
+		{
+			"name": "secret-zero-name",
+			"description": "Name of secret zero",
+			"value": "secret-zero"
+		},
+		{
+			"name": "VAULT_ADDR",
+			"description": "Vault server address",
+			"value": "http://127.0.0.1:8200"
+		},
+		{
+			"name": "DOCKER_API_VERSION",
+			"description": "Docker API version",
+			"value": "1.35"
+		}
+	],
+	"mounts": [
+		{
+			"destination": "/var/run/docker.sock",
+			"source": "/var/run/docker.sock",
+			"options": ["rbind"],
+			"type": "bind"
+		}
+	],
+	"network": {
+		"type": "host"
+	},
+	"interface": {
+		"types":["docker.secretprovider/1.0"],
+		"socket":"secrets-plugin.sock"
+	},
+	"linux": {
+		"capabilities": ["CAP_SYS_ADMIN"]
+	}
+}
