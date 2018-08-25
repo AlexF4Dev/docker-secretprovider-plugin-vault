@@ -3,7 +3,7 @@
 TODO:
 
 - [ ] Docs
-- [ ] Make TLS configurabl
+- [ ] Make TLS configurable
 - [ ] CI/CD
 - [ ] Use docker-compose for teardown/bootstrap
 
