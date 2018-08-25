@@ -1,7 +1,7 @@
 #!/bin/bash
 set -u
 set -o pipefail
-sudo rm -frv plugin/rootfs/.dockerenv plugin/rootfs/*
+rm -frv plugin/rootfs/.dockerenv plugin/rootfs/*
 docker container rm -f -v vault
 docker service rm snitch vault-helper-service
 docker secret rm secret-zero haha VAULT_TOKEN_SORT_OF
@@ -9,7 +9,8 @@ docker plugin disable ${REGISTRY}/absukl/secrets-plugin:latest
 docker plugin rm ${REGISTRY}/absukl/secrets-plugin:latest
 docker build --tag rootfsimage .
 id=$(docker create rootfsimage true)
-sudo docker export "$id" | sudo tar -x -C plugin/rootfs/
+mkdir plugin/rootfs/
+docker export "$id" | tar -x -C plugin/rootfs/
 docker rm -vf "$id"
 docker plugin create ${REGISTRY}/absukl/secrets-plugin:latest ${PWD}/plugin
 docker container run --detach --name vault --publish 8200:8200 vault server -dev -dev-root-token-id=1234
