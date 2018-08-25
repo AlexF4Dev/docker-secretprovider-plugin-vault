@@ -1,13 +1,13 @@
 # Sample Docker/Vault secrets plugin
 
-TODO:
+## TODO:
 
 - [ ] Docs
 - [ ] Make TLS configurable
 - [ ] CI/CD
 - [ ] Use docker-compose for teardown/bootstrap
 
-Preliminary instructions:
+## Preliminary instructions:
 
 Run `./rebuild.sh`, you should get the following
 
