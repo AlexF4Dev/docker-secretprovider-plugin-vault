@@ -6,7 +6,9 @@ TODO:
 
 Preliminary instructions:
 
-Run `./rebuild.sh`, you should get the following:
+Run `./rebuild.sh`, you should get the following
+
+(Note the different tokens in the two task instances of the `snitch` service).
 
 ```console
 $ ./rebuild.sh
