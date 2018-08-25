@@ -8,7 +8,7 @@ Preliminary instructions:
 
 Run `./rebuild.sh`, you should get the following:
 
-```
+```console
 $ ./rebuild.sh
 Error: No such container: vault
 Error: No such service: snitch
