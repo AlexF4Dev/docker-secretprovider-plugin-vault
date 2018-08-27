@@ -10,6 +10,8 @@ before_script:
 
 build-master:
   stage: build
+  tags:
+    - shared
   script:
     - docker build --pull --tag rootfsimage .
     - id=$(docker create rootfsimage true)
@@ -23,6 +25,8 @@ build-master:
 
 build:
   stage: build
+  tags:
+    - shared
   script:
     - docker build --pull --tag rootfsimage .
     - id=$(docker create rootfsimage true)
