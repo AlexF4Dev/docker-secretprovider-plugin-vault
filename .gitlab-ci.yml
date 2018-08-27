@@ -10,6 +10,7 @@ before_script:
 
 build-master:
   stage: build
+  tags: ["${CUSTOM_RUNNER_TAG}"]
   script:
     - docker build --pull --tag rootfsimage .
     - id=$(docker create rootfsimage true)
@@ -23,6 +24,7 @@ build-master:
 
 build:
   stage: build
+  tags: ["${CUSTOM_RUNNER_TAG}"]
   script:
     - docker build --pull --tag rootfsimage .
     - id=$(docker create rootfsimage true)
