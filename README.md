@@ -1,5 +1,13 @@
 # Sample Docker/Vault secrets plugin
 
+## How it works / requirements
+
+This plugin works by calling out to Vault whenever the value of a secret needs to be provided to a task (container). In order to let the plugin authenticate itself with Vault, it needs its own secret credentials. This plugin handles that by execing a command inside a helper service's container, which reveals a regular Swarm secret that contains the Vault token that the plugin should use.
+
+Currently only the opaque token authentication method is supported, but support for the AppRole method would be a welcome contribution.
+
+In order for the plugin to work, the helper service must first be created with a secret attached that gives the right permissions inside Vault.
+
 ## TODO:
 
 - [ ] Docs
