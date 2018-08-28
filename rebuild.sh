@@ -15,7 +15,7 @@ docker rm -vf "$id"
 docker plugin create ${REGISTRY}/absukl/secrets-plugin:latest ${PWD}/plugin
 docker container run --detach --name vault --publish 8200:8200 vault server -dev -dev-root-token-id=1234
 echo -n '1234' | docker secret create secret-zero -
-docker service create --constraint 'node.role == manager' --name vault-helper-service --secret secret-zero --restart-condition on-failure busybox tail -f /dev/null
+docker service create --mode global --constraint 'node.role == manager' --name vault-helper-service --secret secret-zero --restart-condition on-failure busybox tail -f /dev/null
 docker plugin enable ${REGISTRY}/absukl/secrets-plugin:latest
 docker secret create --driver ${REGISTRY}/absukl/secrets-plugin haha
 docker secret create --driver ${REGISTRY}/absukl/secrets-plugin --label "dk.almbrand.docker.plugin.secretprovider.vault.type"="vault_token" VAULT_TOKEN_SORT_OF
