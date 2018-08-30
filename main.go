@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
@@ -16,144 +17,215 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	log = logrus.New()
+const (
+	// Can be set to "vault_token" to return a vault token
+	typeLabel = "dk.almbrand.docker.plugin.secretprovider.vault.type"
+	// Can be set to "true" to wrap the contents of the secret
+	wrapLabel = "dk.almbrand.docker.plugin.secretprovider.vault.wrap"
 )
 
-type MySecretsDriver struct {
-	VaultToken string
+var (
+	log        = logrus.New()
+	secretZero string
+)
+
+type vaultSecretsDriver struct {
+	dockerClient *dockerclient.Client
+	vaultClient  *vaultapi.Client
 }
 
-func (d MySecretsDriver) Get(req secrets.Request) secrets.Response {
-	vaultConfig := vaultapi.DefaultConfig()
-	c, err := vaultapi.NewClient(vaultConfig)
-
-	if err != nil {
+func (d vaultSecretsDriver) Get(req secrets.Request) secrets.Response {
+	errorResponse := func(s string, err error) secrets.Response {
+		log.Errorf("Error getting secret %q: %s: %v", req.SecretName, s, err)
 		return secrets.Response{
-			Err: "Ohnoes",
+			Value: []byte("-"),
+			Err:   fmt.Sprintf("%s: %v", s, err),
 		}
 	}
-	c.SetToken(d.VaultToken)
-	var client *http.Client
-	cli, err := dockerclient.NewClient("unix:///var/run/docker.sock", "1.35", client, nil)
+	valueResponse := func(s string) secrets.Response {
+		return secrets.Response{
+			Value: []byte(s),
+		}
+	}
+
+	// First use secret zero client to create a service token
+	serviceToken, err := d.vaultClient.Auth().Token().Create(&vaultapi.TokenCreateRequest{
+		Policies: []string{req.ServiceName},
+	})
 	if err != nil {
-		log.Errorf("Failed to create Docker client: %v", err)
+		return errorResponse(fmt.Sprintf("Error creating service token with policies like %q", req.ServiceName), err)
 	}
-	swarmSecret, _, err := cli.SecretInspectWithRaw(context.Background(), req.SecretName)
+
+	// Create a Vault client
+	var vaultClient *vaultapi.Client
+	vaultConfig := vaultapi.DefaultConfig()
+	if c, err := vaultapi.NewClient(vaultConfig); err != nil {
+		log.Fatalf("Error creating Vault client: %v", err)
+	} else {
+		c.SetToken(serviceToken.Auth.ClientToken)
+		vaultClient = c
+		defer vaultClient.Auth().Token().RevokeSelf(serviceToken.Auth.ClientToken)
+	}
+
+	vaultClient.SetToken(serviceToken.Auth.ClientToken)
+
+	// Inspect the secret to read its labels
+	swarmSecret, _, err := d.dockerClient.SecretInspectWithRaw(context.Background(), req.SecretName)
 	if err != nil {
-		log.Errorf("Error inspecting secret in Swarm: %v", err)
-		return secrets.Response{Err: fmt.Sprintf("Error inspecting secret in Swarm: %v", err)}
+		return errorResponse("Error inspecting secret in Swarm", err)
 	}
-	var specialTypeLabel string
-	if v, ok := swarmSecret.Spec.Labels["dk.almbrand.docker.plugin.secretprovider.vault.type"]; ok {
-		specialTypeLabel = v
+	typeLabelValue := swarmSecret.Spec.Labels[typeLabel]
+	var vaultWrapValue bool
+	if v, ok := swarmSecret.Spec.Labels[wrapLabel]; ok {
+		if v, err := strconv.ParseBool(v); err == nil {
+			vaultWrapValue = v
+		} else {
+			return errorResponse(fmt.Sprintf("Error parsing boolean value of label %q", wrapLabel), err)
+		}
 	}
-	var secret *vaultapi.Secret
-	isVaultToken := specialTypeLabel == "vault_token" // || req.SecretName == "VAULT_TOKEN"
-	if isVaultToken {
-		secret, err = c.Auth().Token().Create(&vaultapi.TokenCreateRequest{
+
+	switch typeLabelValue {
+	case "vault_token":
+		// Create a token
+		// TODO: Set reasonable default values, and allow configuring them through secret labels
+		secret, err := vaultClient.Auth().Token().Create(&vaultapi.TokenCreateRequest{
 			Lease:    "1h",
 			Policies: []string{"default"},
+			Metadata: map[string]string{
+				"created_by": os.Args[0],
+				// TODO: Add any other interesting metadata
+			},
 		})
-	} else {
-		secret, err = c.Logical().Read(fmt.Sprintf("secret/data/%s", req.SecretName))
-	}
-	if err != nil {
-		log.Errorf("Error getting something from Vault: %v", err)
-		return secrets.Response{
-			Value: []byte(fmt.Sprint(err)),
-			Err:   fmt.Sprint(err),
+		if err != nil {
+			return errorResponse("Error creating token in Vault", err)
+		}
+		return valueResponse(secret.Auth.ClientToken)
+	default:
+		// Read from KV secrets mount
+		// TODO: Make secrets mount and path configurable, e.g. a database credential or similar, or entirely arbitrary
+		secret, err := vaultClient.Logical().Read(fmt.Sprintf("secret/data/%s", req.SecretName))
+		if err != nil {
+			return errorResponse("Error getting kv secret from Vault", err)
+		}
+		if secret == nil || secret.Data == nil {
+			return errorResponse("Data is nil", err)
+		}
+
+		data := secret.Data["data"]
+		if dataMap, ok := data.(map[string]interface{}); ok {
+			if !vaultWrapValue {
+				// TODO: Make what field is returned configurable, possibly return entire secret as JSON if not specified
+				return valueResponse(fmt.Sprintf("%v", dataMap["value"]))
+			} else {
+				// Wrap data map
+				wrappedSecret, err := vaultClient.Logical().Write("sys/wrapping/wrap", dataMap)
+				if err != nil {
+					return errorResponse("Error wrapping secret data", err)
+				}
+				return valueResponse(wrappedSecret.WrapInfo.Token)
+			}
+		} else {
+			return errorResponse("Invalid data map", err)
 		}
 	}
-
-	if isVaultToken {
-		return secrets.Response{
-			Value: []byte(fmt.Sprint(secret.Auth.ClientToken)),
-		}
-	}
-	if secret == nil || secret.Data == nil {
-		return secrets.Response{Err: "Data is nil"}
-	}
-
-	data := secret.Data["data"]
-	if dataMap, ok := data.(map[string]interface{}); ok {
-		return secrets.Response{
-			Value: []byte(fmt.Sprintf("%v", dataMap["value"])),
-		}
-	} else {
-		return secrets.Response{Err: "Invalid data map"}
-	}
-
 }
 
+// Read "secret zero" from the file system of a helper service task container, then serve the plugin.
 func main() {
+	// Create Docker client
 	var client *http.Client
 	cli, err := dockerclient.NewClient("unix:///var/run/docker.sock", "1.35", client, nil)
 	if err != nil {
-		log.Errorf("Failed to create Docker client: %v", err)
+		log.Fatalf("Failed to create Docker client: %v", err)
 	}
+
+	// Read plugin configuration from environment
 	vaultHelperServiceName := os.Getenv("vault-helper-service")
 	secretZeroName := os.Getenv("secret-zero-name")
+
+	// Inspect the helper service
 	service, _, err := cli.ServiceInspectWithRaw(context.Background(), vaultHelperServiceName, types.ServiceInspectOptions{})
 	if err != nil {
-		log.Errorf("Error inspecting helper service %q: %v", vaultHelperServiceName, err)
+		log.Fatalf("Error inspecting helper service %q: %v", vaultHelperServiceName, err)
 	}
+
+	// Look up hostname to filter tasks
 	hostname, err := os.Hostname()
 	if err != nil {
-		log.Errorf("Error getting hostname: %v", err)
+		log.Fatalf("Error getting hostname: %v", err)
 	}
+
+	// Find a task on this node, as otherwise we will not be able to exec inside its container
 	args := filters.NewArgs(filters.Arg("name", vaultHelperServiceName), filters.Arg("node", hostname))
 	tasks, err := cli.TaskList(context.Background(), types.TaskListOptions{
 		Filters: args,
 	})
 	if err != nil {
-		log.Errorf("Error listing tasks for service %q: %v", vaultHelperServiceName, err)
+		log.Fatalf("Error listing tasks for service %q: %v", vaultHelperServiceName, err)
 	}
-	var vaultToken string
-	for i, task := range tasks {
+
+	// Look for a task from the helper service
+	var secretZero string
+	for _, task := range tasks {
+		// avoid services with the name as a shared prefix but different ID
 		if task.ServiceID != service.ID {
-			tasks = append(tasks[0:i], tasks[i+1:]...)
+			continue
 		}
+		// Use a task that has a container
 		containerStatus := task.Status.ContainerStatus
 		if containerStatus != nil {
-			id := containerStatus.ContainerID
-			execConfig := types.ExecConfig{
+			// Create an exec to later read its output
+			response, err := cli.ContainerExecCreate(context.Background(), containerStatus.ContainerID, types.ExecConfig{
 				AttachStdout: true,
 				Detach:       false,
 				Tty:          false,
 				Cmd:          []string{"cat", fmt.Sprintf("/run/secrets/%s", secretZeroName)},
-			}
-			response, err := cli.ContainerExecCreate(context.Background(), id, execConfig)
+			})
 			if err != nil {
-				log.Errorf("Error creating exec: %v", err)
+				log.Fatalf("Error creating exec: %v", err)
 			}
-			execID := response.ID
-			if execID == "" {
-				log.Errorf("exec ID empty")
-			}
-			execStartCheck := types.ExecStartCheck{
+			// Start and attach to exec to read its output
+			resp, err := cli.ContainerExecAttach(context.Background(), response.ID, types.ExecStartCheck{
 				Detach: false,
 				Tty:    false,
-			}
-			resp, err := cli.ContainerExecAttach(context.Background(), execID, execStartCheck)
+			})
 			if err != nil {
-				log.Errorf("Error attaching to exec: %v", err)
+				log.Fatalf("Error attaching to exec: %v", err)
 			}
 			defer resp.Close()
+			// Read the output into a buffer and convert to a string
 			buf := new(bytes.Buffer)
 			if _, err := stdcopy.StdCopy(buf, buf, resp.Reader); err != nil {
 				if err != nil {
-					log.Errorf("Error reading secret zero: %v", err)
+					log.Fatalf("Error reading secret zero: %v", err)
 				}
 			}
-			vaultToken = buf.String()
+			secretZero = buf.String()
+			break
 		}
 	}
+	if len(secretZero) == 0 {
+		log.Fatalf("Failed to read a Vault token from the helper service %q", vaultHelperServiceName)
+	}
 
-	d := MySecretsDriver{
-		VaultToken: vaultToken,
+	// Create a Vault client
+	var vaultClient *vaultapi.Client
+	vaultConfig := vaultapi.DefaultConfig()
+	if c, err := vaultapi.NewClient(vaultConfig); err != nil {
+		log.Fatalf("Error creating Vault client: %v", err)
+	} else {
+		c.SetToken(secretZero)
+		vaultClient = c
+	}
+
+	// Create the driver
+	d := vaultSecretsDriver{
+		dockerClient: cli,
+		vaultClient:  vaultClient,
 	}
 	h := secrets.NewHandler(d)
+
+	// Serve plugin
 	if err := h.ServeUnix("secrets-plugin", 0); err != nil {
 		log.Errorf("Error serving plugin: %v", err)
 	}

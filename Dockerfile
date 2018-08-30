@@ -1,4 +1,4 @@
-FROM golang:1.11rc1-alpine AS build
+FROM golang:1.11-alpine AS build
 ARG repo=lspgitlab01.alm.brand.dk/absukl/secrets-plugin
 WORKDIR /go/src
 COPY vendor/ ./
