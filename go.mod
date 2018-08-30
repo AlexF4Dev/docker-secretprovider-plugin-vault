@@ -1,4 +1,4 @@
-module lspgitlab01.alm.brand.dk/absukl/secrets-plugin
+module gitlab.com/sirlatrom/docker-secretprovider-plugin-vault
 
 require (
 	github.com/Microsoft/go-winio v0.4.11 // indirect

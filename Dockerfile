@@ -1,5 +1,5 @@
 FROM golang:1.11-alpine AS build
-ARG repo=lspgitlab01.alm.brand.dk/absukl/secrets-plugin
+ARG repo=gitlab.com/sirlatrom/docker-secretprovider-plugin-vault
 WORKDIR /go/src
 COPY vendor/ ./
 RUN CGO_ENABLED=0 go install -v ./...
@@ -8,5 +8,5 @@ COPY *.go .
 RUN CGO_ENABLED=0 go install -v
 
 FROM scratch
-COPY --from=build "/go/bin/secrets-plugin" "/go/bin/secrets-plugin"
-ENTRYPOINT ["/go/bin/secrets-plugin"]
+COPY --from=build "/go/bin/docker-secretprovider-plugin-vault" "/go/bin/docker-secretprovider-plugin-vault"
+ENTRYPOINT ["/go/bin/docker-secretprovider-plugin-vault"]

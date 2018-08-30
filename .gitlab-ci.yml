@@ -18,8 +18,8 @@ build-master:
     - mkdir plugin/rootfs/
     - docker export "$id" | tar -x -C plugin/rootfs/
     - docker rm -vf "$id"
-    - docker plugin create "docker.io/sirlatrom/${CI_PROJECT_NAME}" ${PWD}/plugin
-    - docker plugin push "docker.io/sirlatrom/${CI_PROJECT_NAME}"
+    - docker plugin create "docker.io/${CI_USER_ID}/${CI_PROJECT_NAME}" ${PWD}/plugin
+    - docker plugin push "docker.io/${CI_USER_ID}/${CI_PROJECT_NAME}"
   only:
     - master
 
@@ -33,7 +33,7 @@ build:
     - mkdir plugin/rootfs/
     - docker export "$id" | tar -x -C plugin/rootfs/
     - docker rm -vf "$id"
-    - docker plugin create "docker.io/sirlatrom/${CI_PROJECT_NAME}:$CI_COMMIT_REF_SLUG" ${PWD}/plugin
-    - docker plugin push "docker.io/sirlatrom/${CI_PROJECT_NAME}:$CI_COMMIT_REF_SLUG"
+    - docker plugin create "docker.io/${CI_USER_ID}/${CI_PROJECT_NAME}:$CI_COMMIT_REF_SLUG" ${PWD}/plugin
+    - docker plugin push "docker.io/${CI_USER_ID}/${CI_PROJECT_NAME}:$CI_COMMIT_REF_SLUG"
   except:
     - master

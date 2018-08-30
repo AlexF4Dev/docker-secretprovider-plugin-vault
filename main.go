@@ -226,7 +226,7 @@ func main() {
 	h := secrets.NewHandler(d)
 
 	// Serve plugin
-	if err := h.ServeUnix("secrets-plugin", 0); err != nil {
+	if err := h.ServeUnix("plugin", 0); err != nil {
 		log.Errorf("Error serving plugin: %v", err)
 	}
 }

@@ -24,48 +24,48 @@ Run `./rebuild.sh`, you should get the following
 ```console
 $ ./rebuild.sh
 ...
-sha256:3e31eb2085e5150cfd9ccfe2d07baf06f1c82416885db72f01dde4ed0e6f1b09
-f6c875836213db3abd5efabb56b6fbf682220b97882e9cb3d47f30803959bead
-docker.io/absukl/secrets-plugin:latest
-0f63f8c9acc40c37d2f7c63402d03888e7716278bf26721e5321b0eacf1ed0bf
+sha256:2698a4d10452b8de062c5506a7e8a7af1c189491c0bcecc5db4db7a6e0f6e848
+6a1349700598b8d087bb0ab85afb8c8fb75fafad08a7e3a874844d073f07a5c8
+sirlatrom/docker-secretprovider-plugin-vault
+21c414520a21939b90013234f16cb24eeafc5fb404898b56e0cf1a3090fb082e
 Success! Uploaded policy: snitch
 Key              Value
 ---              -----
-created_time     2018-08-30T01:56:21.028242253Z
+created_time     2018-08-30T02:21:27.980476389Z
 deletion_time    n/a
 destroyed        false
 version          1
 Key              Value
 ---              -----
-created_time     2018-08-30T01:56:21.138722437Z
+created_time     2018-08-30T02:21:28.088984314Z
 deletion_time    n/a
 destroyed        false
 version          1
-zjjwiauez2t48sb6ipa33hmyc
-6g9wmnqjx7stqxevkczwkkunl
+fiqw1xaqjqofvinflvmnzo83t
+zj2hvlev230x0s1ei9t25ft9m
 overall progress: 1 out of 1 tasks
 ij2r01ffy6ak: running   [==================================================>]
 verify: Service converged
-docker.io/absukl/secrets-plugin:latest
-wnxa45lpqzh7mh2ax0oqvytjo
-s9os7zjabkcibzewmz88iiifc
-sn313aqwy27ua9libmeqs3mon
-ln04aag56gne0ojltcol5dezn
-snitch.2.m4y7bxrxth9j@redacted_host    | secret:              this_was_not_wrapped
-snitch.2.m4y7bxrxth9j@redacted_host    | wrapped_secret:      0a318705-45b6-3dcb-364f-cf50fca0ce02
-snitch.2.m4y7bxrxth9j@redacted_host    | unwrapped_secret:    this_was_once_wrapped
-snitch.2.m4y7bxrxth9j@redacted_host    | generic_vault_token: ca57c187-c2ff-c04f-146c-66af0a1336ce
-snitch.1.m4qj1siyv6u1@redacted_host    | secret:              this_was_not_wrapped
-snitch.1.m4qj1siyv6u1@redacted_host    | wrapped_secret:      f1a79064-6da9-185d-1451-61db703c8934
-snitch.1.m4qj1siyv6u1@redacted_host    | unwrapped_secret:    this_was_once_wrapped
-snitch.1.m4qj1siyv6u1@redacted_host    | generic_vault_token: f22f7fa5-038b-ad97-bc7a-7fe2ffa1731c
-snitch.1.vwfhg080geu0@redacted_host    | secret:              this_was_not_wrapped
-snitch.1.vwfhg080geu0@redacted_host    | wrapped_secret:      45fec9dc-cdcb-2d89-f9e0-405956687d7a
-snitch.1.vwfhg080geu0@redacted_host    | unwrapped_secret:    this_was_once_wrapped
-snitch.1.vwfhg080geu0@redacted_host    | generic_vault_token: 2f5508eb-c001-4f2b-a3c9-b30e37a67a3c
-snitch.2.jinfngfkl15a@redacted_host    | secret:              this_was_not_wrapped
-snitch.2.jinfngfkl15a@redacted_host    | wrapped_secret:      219d0378-1cfd-7767-587e-c85654dd3a3b
-snitch.2.jinfngfkl15a@redacted_host    | unwrapped_secret:    this_was_once_wrapped
-snitch.2.jinfngfkl15a@redacted_host    | generic_vault_token: 377b501a-93a9-770e-772d-960fbe96013b
+sirlatrom/docker-secretprovider-plugin-vault
+5ioiauam5n9nms9neb6szbwxj
+n5j855gu0i460bno1aaw3neq9
+t99bbs7y5c1y61tyxxhd3msoj
+i9sbmcaqc46v5a44u00fkfxfv
+snitch.2.y42sqzj8524y@redacted_host    | secret:              this_was_not_wrapped
+snitch.2.y42sqzj8524y@redacted_host    | wrapped_secret:      1afd51f9-c1a2-d4ec-8ceb-8e043b77b53a
+snitch.1.gpy8rj3oxz0n@redacted_host    | secret:              this_was_not_wrapped
+snitch.1.gpy8rj3oxz0n@redacted_host    | wrapped_secret:      6567b96c-338e-cd3b-e9bc-67c65597fd0f
+snitch.2.y42sqzj8524y@redacted_host    | unwrapped_secret:    this_was_once_wrapped
+snitch.2.y42sqzj8524y@redacted_host    | generic_vault_token: ddef57f5-a235-923c-4e7c-0a519d307f10
+snitch.1.gpy8rj3oxz0n@redacted_host    | unwrapped_secret:    this_was_once_wrapped
+snitch.1.gpy8rj3oxz0n@redacted_host    | generic_vault_token: b7b27691-1776-ae52-ffc3-b6a59152d12f
+snitch.2.lepelzpcjscj@redacted_host    | secret:              this_was_not_wrapped
+snitch.2.lepelzpcjscj@redacted_host    | wrapped_secret:      84df01da-11f9-acba-0373-89bd1f161798
+snitch.2.lepelzpcjscj@redacted_host    | unwrapped_secret:    this_was_once_wrapped
+snitch.2.lepelzpcjscj@redacted_host    | generic_vault_token: 9214b53f-027c-6552-a0a9-1b18783550d1
+snitch.1.edwdvkmvpbke@redacted_host    | secret:              this_was_not_wrapped
+snitch.1.edwdvkmvpbke@redacted_host    | wrapped_secret:      df1714e1-a1b6-07eb-10c1-7e1ba4e73022
+snitch.1.edwdvkmvpbke@redacted_host    | unwrapped_secret:    this_was_once_wrapped
+snitch.1.edwdvkmvpbke@redacted_host    | generic_vault_token: bedf29d5-fbdd-6085-7809-f113078c66b1
 ...
 ```

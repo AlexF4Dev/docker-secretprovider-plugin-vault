@@ -2,7 +2,7 @@
 	"description": "Sune's secret plugin",
 	"documentation": "https://www.example.com",
 	"entrypoint": [
-		"/go/bin/secrets-plugin"
+		"/go/bin/docker-secretprovider-plugin-vault"
 	],
 	"env": [
 		{
@@ -39,7 +39,7 @@
 	},
 	"interface": {
 		"types":["docker.secretprovider/1.0"],
-		"socket":"secrets-plugin.sock"
+		"socket":"plugin.sock"
 	},
 	"linux": {
 		"capabilities": ["CAP_SYS_ADMIN"]

@@ -1,4 +1,4 @@
-secrets-plugin
+docker-secretprovider-plugin-vault
 rootfs/
 go.sum
 docker-secretprovider-plugin-vault
