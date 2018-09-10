@@ -32,7 +32,7 @@ github.com/docker/docker/api/types/swarm/runtime
 github.com/docker/go-connections/nat
 github.com/docker/go-connections/sockets
 github.com/docker/go-connections/tlsconfig
-# github.com/docker/go-plugins-helpers v0.0.0-20180704134813-39e3ca757823
+# github.com/docker/go-plugins-helpers v0.0.0-20180910140634-a6c534fd923e
 github.com/docker/go-plugins-helpers/secrets
 github.com/docker/go-plugins-helpers/sdk
 # github.com/docker/go-units v0.3.3
