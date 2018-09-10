@@ -70,13 +70,10 @@ func (d vaultSecretsDriver) Get(req secrets.Request) secrets.Response {
 	vaultClient.SetToken(serviceToken.Auth.ClientToken)
 
 	// Inspect the secret to read its labels
-	swarmSecret, _, err := d.dockerClient.SecretInspectWithRaw(context.Background(), req.SecretName)
-	if err != nil {
-		return errorResponse("Error inspecting secret in Swarm", err)
-	}
-	typeLabelValue := swarmSecret.Spec.Labels[typeLabel]
+	typeLabelValue := req.SecretLabels[typeLabel]
+
 	var vaultWrapValue bool
-	if v, ok := swarmSecret.Spec.Labels[wrapLabel]; ok {
+	if v, exists := req.SecretLabels[wrapLabel]; exists {
 		if v, err := strconv.ParseBool(v); err == nil {
 			vaultWrapValue = v
 		} else {
