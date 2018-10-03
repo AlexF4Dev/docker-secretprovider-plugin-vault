@@ -44,7 +44,8 @@ func (d vaultSecretsDriver) Get(req secrets.Request) secrets.Response {
 	}
 	valueResponse := func(s string) secrets.Response {
 		return secrets.Response{
-			Value: []byte(s),
+			Value:      []byte(s),
+			DoNotReuse: true,
 		}
 	}
 

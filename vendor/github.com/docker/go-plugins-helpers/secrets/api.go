@@ -22,8 +22,9 @@ type Request struct {
 
 // Response contains the plugin secret value
 type Response struct {
-	Value []byte `json:",omitempty"` // Value is the value of the secret
-	Err   string `json:",omitempty"` // Err is the error response of the plugin
+	Value      []byte `json:",omitempty"` // Value is the value of the secret
+	Err        string `json:",omitempty"` // Err is the error response of the plugin
+	DoNotReuse bool   `json:",omitempty"`
 }
 
 // EndpointSpec represents the spec of an endpoint.
