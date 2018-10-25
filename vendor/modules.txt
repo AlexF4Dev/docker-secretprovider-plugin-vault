@@ -32,7 +32,7 @@ github.com/docker/docker/api/types/swarm/runtime
 github.com/docker/go-connections/nat
 github.com/docker/go-connections/sockets
 github.com/docker/go-connections/tlsconfig
-# github.com/docker/go-plugins-helpers v0.0.0-20180704134813-39e3ca757823
+# github.com/docker/go-plugins-helpers v0.0.0-20181025120712-1e6269c305b8
 github.com/docker/go-plugins-helpers/secrets
 github.com/docker/go-plugins-helpers/sdk
 # github.com/docker/go-units v0.3.3
@@ -93,7 +93,7 @@ github.com/ryanuber/go-glob
 github.com/sirupsen/logrus
 # golang.org/x/crypto v0.0.0-20180820150726-614d502a4dac
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20180824045131-faa378e6dbae
+# golang.org/x/net v0.0.0-20180906233101-161cd47e91fd
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/http2
@@ -102,7 +102,7 @@ golang.org/x/net/http/httpguts
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/socks
-# golang.org/x/sys v0.0.0-20180823144017-11551d06cbcc
+# golang.org/x/sys v0.0.0-20180909124046-d0be0721c37e
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 # golang.org/x/text v0.3.0
