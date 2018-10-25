@@ -19,7 +19,8 @@ import (
 
 const (
 	// Can be set to "vault_token" to return a vault token
-	typeLabel = "dk.almbrand.docker.plugin.secretprovider.vault.type"
+	typeLabel      = "dk.almbrand.docker.plugin.secretprovider.vault.type"
+	vaultTokenType = "vault_token"
 	// Can be set to "true" to wrap the contents of the secret
 	wrapLabel = "dk.almbrand.docker.plugin.secretprovider.vault.wrap"
 )
@@ -71,13 +72,9 @@ func (d vaultSecretsDriver) Get(req secrets.Request) secrets.Response {
 	vaultClient.SetToken(serviceToken.Auth.ClientToken)
 
 	// Inspect the secret to read its labels
-	swarmSecret, _, err := d.dockerClient.SecretInspectWithRaw(context.Background(), req.SecretName)
-	if err != nil {
-		return errorResponse("Error inspecting secret in Swarm", err)
-	}
-	typeLabelValue := swarmSecret.Spec.Labels[typeLabel]
+	typeLabelValue := req.SecretLabels[typeLabel]
 	var vaultWrapValue bool
-	if v, ok := swarmSecret.Spec.Labels[wrapLabel]; ok {
+	if v, exists := req.SecretLabels[wrapLabel]; exists {
 		if v, err := strconv.ParseBool(v); err == nil {
 			vaultWrapValue = v
 		} else {
@@ -86,7 +83,7 @@ func (d vaultSecretsDriver) Get(req secrets.Request) secrets.Response {
 	}
 
 	switch typeLabelValue {
-	case "vault_token":
+	case vaultTokenType:
 		// Create a token
 		// TODO: Set reasonable default values, and allow configuring them through secret labels
 		secret, err := vaultClient.Auth().Token().Create(&vaultapi.TokenCreateRequest{
