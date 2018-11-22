@@ -22,6 +22,9 @@ build-master:
     - docker plugin push "docker.io/${GITLAB_USER_LOGIN}/${CI_PROJECT_NAME}"
   only:
     - master
+  environment:
+    name: Docker Hub/latest
+    url: https://hub.docker.com/r/sirlatrom/docker-secretprovider-plugin-vault/
 
 build:
   stage: build
@@ -37,3 +40,6 @@ build:
     - docker plugin push "docker.io/${GITLAB_USER_LOGIN}/${CI_PROJECT_NAME}:$CI_COMMIT_REF_SLUG"
   except:
     - master
+  environment:
+    name: Docker Hub/branches
+    url: https://hub.docker.com/r/sirlatrom/docker-secretprovider-plugin-vault/
