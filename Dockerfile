@@ -4,7 +4,7 @@ WORKDIR /go/src
 COPY vendor/ ./
 RUN CGO_ENABLED=0 go install -v ./...
 WORKDIR /go/src/$repo
-COPY *.go .
+COPY main.go .
 RUN CGO_ENABLED=0 go install -v
 
 FROM scratch
