@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -23,6 +24,13 @@ const (
 	vaultTokenType = "vault_token"
 	// Can be set to "true" to wrap the contents of the secret
 	wrapLabel = "dk.almbrand.docker.plugin.secretprovider.vault.wrap"
+
+	// Read secret from this path
+	pathLabel = "dk.almbrand.docker.plugin.secretprovider.vault.path"
+	// Read this field from the secret (defaults to "value")
+	fieldLabel = "dk.almbrand.docker.plugin.secretprovider.vault.field"
+	// Return JSON encoded map of secret if set to "true"
+	jsonLabel = "dk.almbrand.docker.plugin.secretprovider.vault.json"
 )
 
 var (
@@ -72,7 +80,6 @@ func (d vaultSecretsDriver) Get(req secrets.Request) secrets.Response {
 	vaultClient.SetToken(serviceToken.Auth.ClientToken)
 
 	// Inspect the secret to read its labels
-	typeLabelValue := req.SecretLabels[typeLabel]
 	var vaultWrapValue bool
 	if v, exists := req.SecretLabels[wrapLabel]; exists {
 		if v, err := strconv.ParseBool(v); err == nil {
@@ -82,7 +89,7 @@ func (d vaultSecretsDriver) Get(req secrets.Request) secrets.Response {
 		}
 	}
 
-	switch typeLabelValue {
+	switch req.SecretLabels[typeLabel] {
 	case vaultTokenType:
 		// Create a token
 		// TODO: Set reasonable default values, and allow configuring them through secret labels
@@ -99,32 +106,65 @@ func (d vaultSecretsDriver) Get(req secrets.Request) secrets.Response {
 		}
 		return valueResponse(secret.Auth.ClientToken)
 	default:
+		var secret *vaultapi.Secret
 		// Read from KV secrets mount
-		// TODO: Make secrets mount and path configurable, e.g. a database credential or similar, or entirely arbitrary
-		secret, err := vaultClient.Logical().Read(fmt.Sprintf("secret/data/%s", req.SecretName))
+		field := ""
+		if fieldName, exists := req.SecretLabels[fieldLabel]; exists {
+			field = fieldName
+		}
+		useJSON := false
+		if value, exists := req.SecretLabels[jsonLabel]; exists {
+			b, err := strconv.ParseBool(value)
+			if err != nil {
+				return errorResponse(fmt.Sprintf("Error parsing %q as bool", value), err)
+			}
+			useJSON = b
+		}
+		path := fmt.Sprintf("secret/data/%s", req.SecretName)
+		if v, exists := req.SecretLabels[pathLabel]; exists {
+			path = v
+		}
+		secret, err = vaultClient.Logical().Read(path)
 		if err != nil {
-			return errorResponse("Error getting kv secret from Vault", err)
+			return errorResponse(fmt.Sprintf("Error getting kv secret from Vault at path %q", path), err)
 		}
 		if secret == nil || secret.Data == nil {
-			return errorResponse("Data is nil", err)
+			return errorResponse(fmt.Sprintf("Data is nil at path %q (secret: %#v)", path, secret), err)
 		}
 
 		data := secret.Data["data"]
 		if dataMap, ok := data.(map[string]interface{}); ok {
 			if !vaultWrapValue {
-				// TODO: Make what field is returned configurable, possibly return entire secret as JSON if not specified
-				return valueResponse(fmt.Sprintf("%v", dataMap["value"]))
-			} else {
-				// Wrap data map
-				wrappedSecret, err := vaultClient.Logical().Write("sys/wrapping/wrap", dataMap)
-				if err != nil {
-					return errorResponse("Error wrapping secret data", err)
+				if useJSON {
+					var result string
+					if len(field) == 0 {
+						resultBytes, err := json.Marshal(dataMap)
+						if err != nil {
+							return errorResponse("Error marshalling secret data map", err)
+						}
+						result = string(resultBytes)
+					} else {
+						resultBytes, err := json.Marshal(dataMap[field])
+						if err != nil {
+							return errorResponse(fmt.Sprintf("Error marshalling secret data field %q", field), err)
+						}
+						result = string(resultBytes)
+					}
+					return valueResponse(fmt.Sprintf("%v", result))
 				}
-				return valueResponse(wrappedSecret.WrapInfo.Token)
+				if len(field) == 0 {
+					field = "value"
+				}
+				return valueResponse(fmt.Sprintf("%v", dataMap[field]))
 			}
-		} else {
-			return errorResponse("Invalid data map", err)
+			// Wrap data map
+			wrappedSecret, err := vaultClient.Logical().Write("sys/wrapping/wrap", dataMap)
+			if err != nil {
+				return errorResponse("Error wrapping secret data", err)
+			}
+			return valueResponse(wrappedSecret.WrapInfo.Token)
 		}
+		return errorResponse("Invalid data map", err)
 	}
 }
 

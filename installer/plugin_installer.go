@@ -29,6 +29,10 @@ func main() {
 		re := regexp.MustCompile("^(?:.+/|)([^:$]+)(?::.*|)$")
 		serviceName = re.ReplaceAllString(pluginName, "${1}")
 	}
+	remote := pluginName
+	if override, exists := os.LookupEnv("remote"); exists {
+		remote = override
+	}
 	service, err := cli.ServiceCreate(context.Background(), swarm.ServiceSpec{
 		Annotations: swarm.Annotations{
 			Name: serviceName,
@@ -36,7 +40,7 @@ func main() {
 		TaskTemplate: swarm.TaskSpec{
 			PluginSpec: &runtime.PluginSpec{
 				Name:     pluginName,
-				Remote:   pluginName,
+				Remote:   remote,
 				Disabled: false,
 				Privileges: []*runtime.PluginPrivilege{
 					&runtime.PluginPrivilege{
