@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 
@@ -126,10 +127,11 @@ func (d vaultSecretsDriver) Get(req secrets.Request) secrets.Response {
 		if v, exists := req.SecretLabels[pathLabel]; exists {
 			path = v
 		}
+		params := make(url.Values)
 		if v, exists := req.SecretLabels[versionLabel]; exists {
-			path = fmt.Sprintf("%s?version=%s", path, v)
+			params.Set(version, v)
 		}
-		secret, err = vaultClient.Logical().Read(path)
+		secret, err = vaultClient.Logical().ReadWithData(path, params)
 		if err != nil {
 			return errorResponse(fmt.Sprintf("Error getting kv secret from Vault at path %q", path), err)
 		}
