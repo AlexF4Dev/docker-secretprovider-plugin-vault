@@ -7,8 +7,7 @@ import (
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/go-units"
-	specs "github.com/opencontainers/image-spec/specs-go/v1"
+	units "github.com/docker/go-units"
 )
 
 // CheckpointCreateOptions holds parameters to create a checkpoint from a container
@@ -181,13 +180,22 @@ type ImageBuildOptions struct {
 	ExtraHosts  []string // List of extra hosts
 	Target      string
 	SessionID   string
-	Platform    *specs.Platform
+	Platform    string
 	// Version specifies the version of the unerlying builder to use
 	Version BuilderVersion
 	// BuildID is an optional identifier that can be passed together with the
 	// build request. The same identifier can be used to gracefully cancel the
 	// build with the cancel request.
 	BuildID string
+	// Outputs defines configurations for exporting build results. Only supported
+	// in BuildKit mode
+	Outputs []ImageBuildOutput
+}
+
+// ImageBuildOutput defines configuration for exporting a build result
+type ImageBuildOutput struct {
+	Type  string
+	Attrs map[string]string
 }
 
 // BuilderVersion sets the version of underlying builder to use

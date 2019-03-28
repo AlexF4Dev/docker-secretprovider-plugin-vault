@@ -129,7 +129,7 @@ func (d vaultSecretsDriver) Get(req secrets.Request) secrets.Response {
 		}
 		params := make(url.Values)
 		if v, exists := req.SecretLabels[versionLabel]; exists {
-			params.Set(version, v)
+			params.Set("version", v)
 		}
 		secret, err = vaultClient.Logical().ReadWithData(path, params)
 		if err != nil {
