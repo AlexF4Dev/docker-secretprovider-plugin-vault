@@ -29,6 +29,8 @@ const (
 	pathLabel = "dk.almbrand.docker.plugin.secretprovider.vault.path"
 	// Read this field from the secret (defaults to "value")
 	fieldLabel = "dk.almbrand.docker.plugin.secretprovider.vault.field"
+	// If using v2 key/value backend, use this version of the secret
+	versionLabel = "dk.almbrand.docker.plugin.secretprovider.vault.version"
 	// Return JSON encoded map of secret if set to "true"
 	jsonLabel = "dk.almbrand.docker.plugin.secretprovider.vault.json"
 )
@@ -123,6 +125,9 @@ func (d vaultSecretsDriver) Get(req secrets.Request) secrets.Response {
 		path := fmt.Sprintf("secret/data/%s", req.SecretName)
 		if v, exists := req.SecretLabels[pathLabel]; exists {
 			path = v
+		}
+		if v, exists := req.SecretLabels[versionLabel]; exists {
+			path = fmt.Sprintf("%s?version=%s", path, v)
 		}
 		secret, err = vaultClient.Logical().Read(path)
 		if err != nil {
