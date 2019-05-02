@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -33,7 +34,7 @@ const (
 	// If using v2 key/value backend, use this version of the secret
 	versionLabel = "dk.almbrand.docker.plugin.secretprovider.vault.version"
 	// Return JSON encoded map of secret if set to "true"
-	jsonLabel = "dk.almbrand.docker.plugin.secretprovider.vault.json"
+	formatLabel = "dk.almbrand.docker.plugin.secretprovider.vault.format"
 )
 
 var (
@@ -92,6 +93,11 @@ func (d vaultSecretsDriver) Get(req secrets.Request) secrets.Response {
 		}
 	}
 
+	format := "plain"
+	if value, exists := req.SecretLabels[formatLabel]; exists {
+		format = value
+	}
+
 	switch req.SecretLabels[typeLabel] {
 	case vaultTokenType:
 		// Create a token
@@ -107,21 +113,31 @@ func (d vaultSecretsDriver) Get(req secrets.Request) secrets.Response {
 		if err != nil {
 			return errorResponse("Error creating token in Vault", err)
 		}
-		return valueResponse(secret.Auth.ClientToken)
+
+		switch format {
+		case "meta+json":
+			resultBytes, err := json.Marshal(secret)
+			if err != nil {
+				return errorResponse("Error marshalling secret", err)
+			}
+			return valueResponse(string(resultBytes))
+		case "json":
+			resultBytes, err := json.Marshal(secret.Auth.ClientToken)
+			if err != nil {
+				return errorResponse("Error marshalling secret", err)
+			}
+			return valueResponse(string(resultBytes))
+		case "plain":
+			return valueResponse(secret.Auth.ClientToken)
+		default:
+			return errorResponse("Unexpected format", errors.New(format))
+		}
 	default:
 		var secret *vaultapi.Secret
 		// Read from KV secrets mount
 		field := ""
 		if fieldName, exists := req.SecretLabels[fieldLabel]; exists {
 			field = fieldName
-		}
-		useJSON := false
-		if value, exists := req.SecretLabels[jsonLabel]; exists {
-			b, err := strconv.ParseBool(value)
-			if err != nil {
-				return errorResponse(fmt.Sprintf("Error parsing %q as bool", value), err)
-			}
-			useJSON = b
 		}
 		path := fmt.Sprintf("secret/data/%s", req.SecretName)
 		if v, exists := req.SecretLabels[pathLabel]; exists {
@@ -142,27 +158,34 @@ func (d vaultSecretsDriver) Get(req secrets.Request) secrets.Response {
 		data := secret.Data["data"]
 		if dataMap, ok := data.(map[string]interface{}); ok {
 			if !vaultWrapValue {
-				if useJSON {
-					var result string
-					if len(field) == 0 {
-						resultBytes, err := json.Marshal(dataMap)
+				switch format {
+				case "json", "meta+json":
+					var resultBytes []byte
+					if format == "meta+json" {
+						resultBytes, err = json.Marshal(secret)
+						if err != nil {
+							return errorResponse("Error marshalling secret", err)
+						}
+					} else if len(field) == 0 {
+						resultBytes, err = json.Marshal(dataMap)
 						if err != nil {
 							return errorResponse("Error marshalling secret data map", err)
 						}
-						result = string(resultBytes)
 					} else {
-						resultBytes, err := json.Marshal(dataMap[field])
+						resultBytes, err = json.Marshal(dataMap[field])
 						if err != nil {
 							return errorResponse(fmt.Sprintf("Error marshalling secret data field %q", field), err)
 						}
-						result = string(resultBytes)
 					}
-					return valueResponse(fmt.Sprintf("%v", result))
+					return valueResponse(fmt.Sprintf("%v", string(resultBytes)))
+				case "plain":
+					if len(field) == 0 {
+						field = "value"
+					}
+					return valueResponse(fmt.Sprintf("%v", dataMap[field]))
+				default:
+					return errorResponse("Unexpected format", errors.New(format))
 				}
-				if len(field) == 0 {
-					field = "value"
-				}
-				return valueResponse(fmt.Sprintf("%v", dataMap[field]))
 			}
 			// Wrap data map
 			wrappedSecret, err := serviceVaultClient.Logical().Write("sys/wrapping/wrap", dataMap)

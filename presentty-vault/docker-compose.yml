@@ -25,6 +25,9 @@ services:
       echo -n "multi_json:          "
       cat /run/secrets/multi_json
       echo
+      echo -n "multi_meta_json:          "
+      cat /run/secrets/multi_meta_json
+      echo
       echo -n "multi_json_v1:       "
       cat /run/secrets/multi_json_v1
       echo
@@ -45,6 +48,7 @@ services:
       - multi_a
       - multi_b
       - multi_json
+      - multi_meta_json
       - multi_json_v1
       - multi_json_v2
 secrets:
@@ -72,16 +76,21 @@ secrets:
     driver: ${plugin_name}
     labels:
       dk.almbrand.docker.plugin.secretprovider.vault.path: secret/data/multi
-      dk.almbrand.docker.plugin.secretprovider.vault.json: "true"
+      dk.almbrand.docker.plugin.secretprovider.vault.format: "json"
+  multi_meta_json:
+    driver: ${plugin_name}
+    labels:
+      dk.almbrand.docker.plugin.secretprovider.vault.path: secret/data/multi
+      dk.almbrand.docker.plugin.secretprovider.vault.format: "meta+json"
   multi_json_v1:
     driver: ${plugin_name}
     labels:
       dk.almbrand.docker.plugin.secretprovider.vault.path: secret/data/multi
-      dk.almbrand.docker.plugin.secretprovider.vault.json: "true"
+      dk.almbrand.docker.plugin.secretprovider.vault.format: "json"
       dk.almbrand.docker.plugin.secretprovider.vault.version: "1"
   multi_json_v2:
     driver: ${plugin_name}
     labels:
       dk.almbrand.docker.plugin.secretprovider.vault.path: secret/data/multi
-      dk.almbrand.docker.plugin.secretprovider.vault.json: "true"
+      dk.almbrand.docker.plugin.secretprovider.vault.format: "json"
       dk.almbrand.docker.plugin.secretprovider.vault.version: "2"
