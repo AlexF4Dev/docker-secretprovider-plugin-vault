@@ -69,18 +69,18 @@ func (d vaultSecretsDriver) Get(req secrets.Request) secrets.Response {
 		return errorResponse(fmt.Sprintf("Error creating service token with policies like %q", req.ServiceName), err)
 	}
 
-	// Create a Vault client
-	var vaultClient *vaultapi.Client
+	// Create a Vault client limited to the service token
+	var serviceVaultClient *vaultapi.Client
 	vaultConfig := vaultapi.DefaultConfig()
 	if c, err := vaultapi.NewClient(vaultConfig); err != nil {
 		log.Fatalf("Error creating Vault client: %v", err)
 	} else {
 		c.SetToken(serviceToken.Auth.ClientToken)
-		vaultClient = c
-		defer vaultClient.Auth().Token().RevokeSelf(serviceToken.Auth.ClientToken)
+		serviceVaultClient = c
+		defer serviceVaultClient.Auth().Token().RevokeSelf(serviceToken.Auth.ClientToken)
 	}
 
-	vaultClient.SetToken(serviceToken.Auth.ClientToken)
+	serviceVaultClient.SetToken(serviceToken.Auth.ClientToken)
 
 	// Inspect the secret to read its labels
 	var vaultWrapValue bool
@@ -96,7 +96,7 @@ func (d vaultSecretsDriver) Get(req secrets.Request) secrets.Response {
 	case vaultTokenType:
 		// Create a token
 		// TODO: Set reasonable default values, and allow configuring them through secret labels
-		secret, err := vaultClient.Auth().Token().Create(&vaultapi.TokenCreateRequest{
+		secret, err := serviceVaultClient.Auth().Token().Create(&vaultapi.TokenCreateRequest{
 			Lease:    "1h",
 			Policies: []string{"default"},
 			Metadata: map[string]string{
@@ -131,7 +131,7 @@ func (d vaultSecretsDriver) Get(req secrets.Request) secrets.Response {
 		if v, exists := req.SecretLabels[versionLabel]; exists {
 			params.Set("version", v)
 		}
-		secret, err = vaultClient.Logical().ReadWithData(path, params)
+		secret, err = serviceVaultClient.Logical().ReadWithData(path, params)
 		if err != nil {
 			return errorResponse(fmt.Sprintf("Error getting kv secret from Vault at path %q", path), err)
 		}
@@ -165,7 +165,7 @@ func (d vaultSecretsDriver) Get(req secrets.Request) secrets.Response {
 				return valueResponse(fmt.Sprintf("%v", dataMap[field]))
 			}
 			// Wrap data map
-			wrappedSecret, err := vaultClient.Logical().Write("sys/wrapping/wrap", dataMap)
+			wrappedSecret, err := serviceVaultClient.Logical().Write("sys/wrapping/wrap", dataMap)
 			if err != nil {
 				return errorResponse("Error wrapping secret data", err)
 			}
