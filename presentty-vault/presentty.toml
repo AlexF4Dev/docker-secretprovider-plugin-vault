@@ -1,0 +1,9 @@
+size=18
+light=true
+
+[demo.vault-plugin]
+build="./"
+flags=["--mount", "type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock"]
+#flags=["--privileged"]
+#cmd="tmux -a -d -t demo"
+cmd="tmux attach-session -d -t demo"

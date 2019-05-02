@@ -1,4 +1,4 @@
-FROM golang:1.11-alpine AS build
+FROM golang:1-alpine AS build
 ARG repo=gitlab.com/sirlatrom/docker-secretprovider-plugin-vault
 WORKDIR /go/src
 COPY vendor/ ./

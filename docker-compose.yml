@@ -1,0 +1,87 @@
+version: "3.8"
+services:
+  snitch:
+    image: vault
+    command: |
+      sh -c
+      'echo -n "secret:              "
+      cat /run/secrets/secret
+      echo
+      echo -n "wrapped_secret:      "
+      cat /run/secrets/wrapped_secret
+      echo
+      echo -n "unwrapped_secret:    "
+      VAULT_TOKEN=$$(cat /run/secrets/wrapped_secret) vault unwrap -field=value
+      echo
+      echo -n "generic_vault_token: "
+      cat /run/secrets/generic_vault_token
+      echo
+      echo -n "multi_a:             "
+      cat /run/secrets/multi_a
+      echo
+      echo -n "multi_b:             "
+      cat /run/secrets/multi_b
+      echo
+      echo -n "multi_json:          "
+      cat /run/secrets/multi_json
+      echo
+      echo -n "multi_json_v1:       "
+      cat /run/secrets/multi_json_v1
+      echo
+      echo -n "multi_json_v2:       "
+      cat /run/secrets/multi_json_v2
+      echo'
+    deploy:
+      replicas: 2
+      placement:
+        constraints:
+          - "node.role == ${snitch_role?}"
+    environment:
+      VAULT_ADDR: http://172.17.0.1:8200
+    secrets:
+      - secret
+      - wrapped_secret
+      - generic_vault_token
+      - multi_a
+      - multi_b
+      - multi_json
+      - multi_json_v1
+      - multi_json_v2
+secrets:
+  secret:
+    driver: ${plugin_name}
+  wrapped_secret:
+    driver: ${plugin_name}
+    labels:
+      dk.almbrand.docker.plugin.secretprovider.vault.wrap: "true"
+  generic_vault_token:
+    driver: ${plugin_name}
+    labels:
+      dk.almbrand.docker.plugin.secretprovider.vault.type: vault_token
+  multi_a:
+    driver: ${plugin_name}
+    labels:
+      dk.almbrand.docker.plugin.secretprovider.vault.path: secret/data/multi
+      dk.almbrand.docker.plugin.secretprovider.vault.field: a
+  multi_b:
+    driver: ${plugin_name}
+    labels:
+      dk.almbrand.docker.plugin.secretprovider.vault.path: secret/data/multi
+      dk.almbrand.docker.plugin.secretprovider.vault.field: b
+  multi_json:
+    driver: ${plugin_name}
+    labels:
+      dk.almbrand.docker.plugin.secretprovider.vault.path: secret/data/multi
+      dk.almbrand.docker.plugin.secretprovider.vault.json: "true"
+  multi_json_v1:
+    driver: ${plugin_name}
+    labels:
+      dk.almbrand.docker.plugin.secretprovider.vault.path: secret/data/multi
+      dk.almbrand.docker.plugin.secretprovider.vault.json: "true"
+      dk.almbrand.docker.plugin.secretprovider.vault.version: "1"
+  multi_json_v2:
+    driver: ${plugin_name}
+    labels:
+      dk.almbrand.docker.plugin.secretprovider.vault.path: secret/data/multi
+      dk.almbrand.docker.plugin.secretprovider.vault.json: "true"
+      dk.almbrand.docker.plugin.secretprovider.vault.version: "2"
