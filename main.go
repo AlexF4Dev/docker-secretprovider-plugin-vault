@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
+	"text/template"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
@@ -38,8 +40,10 @@ const (
 )
 
 var (
-	log        = logrus.New()
-	secretZero string
+	log                      = logrus.New()
+	policyTemplateExpression string
+	policyTemplate           *template.Template
+	secretZero               string
 )
 
 type vaultSecretsDriver struct {
@@ -63,11 +67,37 @@ func (d vaultSecretsDriver) Get(req secrets.Request) secrets.Response {
 	}
 
 	// First use secret zero client to create a service token
+	var policies []string
+	if policyTemplate == nil {
+		policies = []string{req.ServiceName}
+	} else {
+		policiesBuffer := bytes.NewBuffer(nil)
+		tmpl, err := policyTemplate.Clone()
+		if err != nil {
+			log.Fatalf("Error cloning template: %v", err)
+		}
+		if err := tmpl.Funcs(template.FuncMap{
+			"ServiceLabel": func(name string) (string, error) {
+				value, exists := req.ServiceLabels[name]
+				if !exists {
+					return "", fmt.Errorf("No such service label: %q", name)
+				}
+				return value, nil
+			},
+		}).Execute(policiesBuffer, req); err != nil {
+			log.Fatalf("Error executing policy template: %v", err)
+		}
+		policies = strings.Split(policiesBuffer.String(), ",")
+		if len(policies) == 0 {
+			log.Fatalf("Empty policies list after executing template %q", policyTemplateExpression)
+		}
+	}
 	serviceToken, err := d.vaultClient.Auth().Token().Create(&vaultapi.TokenCreateRequest{
-		Policies: []string{req.ServiceName},
+		Policies: policies,
 	})
 	if err != nil {
-		return errorResponse(fmt.Sprintf("Error creating service token with policies like %q", req.ServiceName), err)
+		policiesString := strings.Join(policies, ",")
+		return errorResponse(fmt.Sprintf("Error creating service token with policies like %q", policiesString), err)
 	}
 
 	// Create a Vault client limited to the service token
@@ -104,7 +134,7 @@ func (d vaultSecretsDriver) Get(req secrets.Request) secrets.Response {
 		// TODO: Set reasonable default values, and allow configuring them through secret labels
 		secret, err := serviceVaultClient.Auth().Token().Create(&vaultapi.TokenCreateRequest{
 			Lease:    "1h",
-			Policies: []string{"default"},
+			Policies: policies,
 			Metadata: map[string]string{
 				"created_by": os.Args[0],
 				// TODO: Add any other interesting metadata
@@ -292,6 +322,16 @@ func main() {
 		vaultClient:  vaultClient,
 	}
 	h := secrets.NewHandler(d)
+
+	// Parse policy template
+	policyTemplateExpression = os.Getenv("policy-template")
+	if len(policyTemplateExpression) > 0 {
+		tmpl, err := template.New("policies").Parse(policyTemplateExpression)
+		if err != nil {
+			log.Fatalf("Error parsing policy template %q: %v", policyTemplateExpression, err)
+		}
+		policyTemplate = tmpl
+	}
 
 	// Serve plugin
 	if err := h.ServeUnix("plugin", 0); err != nil {
