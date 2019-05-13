@@ -16,6 +16,11 @@
 			"value": "secret-zero"
 		},
 		{
+			"name": "policy-template",
+			"description": "Template defining which policies to attach to token",
+			"value": "{{ .ServiceName }}"
+		},
+		{
 			"name": "VAULT_ADDR",
 			"description": "Vault server address",
 			"value": "http://127.0.0.1:8200"

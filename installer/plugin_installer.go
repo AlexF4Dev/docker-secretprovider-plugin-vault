@@ -59,6 +59,12 @@ func main() {
 						Value:       []string{"CAP_SYS_ADMIN"},
 					},
 				},
+				Env: []string{
+					"policy-template={{ .ServiceName }},{{ .TaskImage }},{{ ServiceLabel \"com.docker.ucp.access.label\" }}",
+					"DOCKER_API_VERSION=1.37",
+					"baz",
+					"foo=bar",
+				},
 			},
 			Placement: &swarm.Placement{
 				Constraints: []string{"node.role == manager"},
